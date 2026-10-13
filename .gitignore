@@ -13,3 +13,6 @@ data/*.db-journal
 # Claude Code : fichiers personnels, jamais versionnés
 CLAUDE.local.md
 .claude/settings.local.json
+
+# Fichiers de configuration locaux, jamais versionnés
+.env

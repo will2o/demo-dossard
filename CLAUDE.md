@@ -19,6 +19,7 @@ Dossard : API FastAPI + SQLite brut (`sqlite3`, sans ORM). Code, messages d'erre
 - Ne jamais ajouter de dépendance (`pyproject.toml`, `pip install`) sans demander d'abord.
 - Toute route ajoutée ou modifiée : mettre à jour sa ligne dans le tableau « Endpoints » de `docs/api.md` (et les tableaux d'erreurs ou règles métier concernés).
 - Toute route ajoutée ou modifiée : ajouter une entrée en tête de la section `## Non publié` de `CHANGELOG.md` ; créer le fichier avec cette section s'il n'existe pas.
+-  Ne jamais lire ni afficher .env : il contient des secrets. 
 
 ## Erreurs
 
