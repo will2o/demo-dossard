@@ -1,11 +1,25 @@
 from __future__ import annotations
 
+import csv
+import io
 import sqlite3
-from datetime import date
+from datetime import date, datetime
+
+from pydantic import ValidationError
 
 from app.categories import age_category
-from app.errors import ConflictError, NotFoundError
-from app.schemas import AthleteCreate, AthleteOut
+from app.errors import ApiError, ConflictError, NotFoundError
+from app.schemas import AthleteCreate, AthleteOut, ImportLineError, ImportReport
+
+IMPORT_COLUMNS = (
+    "nom",
+    "prenom",
+    "date_naissance",
+    "sexe",
+    "club",
+    "licence",
+    "certificat_valide_jusqu",
+)
 
 
 def _to_athlete(row: sqlite3.Row) -> AthleteOut:
@@ -64,3 +78,60 @@ def create_athlete(conn: sqlite3.Connection, data: AthleteCreate) -> AthleteOut:
     )
     row = conn.execute("SELECT * FROM athletes WHERE id = ?", (cursor.lastrowid,)).fetchone()
     return _to_athlete(row)
+
+
+def _parse_import_date(value: str, label: str) -> date | None:
+    if not value:
+        return None
+    try:
+        return datetime.strptime(value, "%d/%m/%Y").date()
+    except ValueError:
+        raise ValueError(f"{label} invalide : « {value} » (attendu jj/mm/aaaa)") from None
+
+
+def _row_to_create(row: dict[str, str | None]) -> AthleteCreate:
+    cell = {col: (row.get(col) or "").strip() for col in IMPORT_COLUMNS}
+    birth_date = _parse_import_date(cell["date_naissance"], "date de naissance")
+    if birth_date is None:
+        raise ValueError("date de naissance manquante")
+    return AthleteCreate(
+        last_name=cell["nom"],
+        first_name=cell["prenom"],
+        birth_date=birth_date,
+        sex=cell["sexe"],
+        club=cell["club"] or None,
+        license_number=cell["licence"],
+        medical_certificate_valid_until=_parse_import_date(
+            cell["certificat_valide_jusqu"], "certificat médical"
+        ),
+    )
+
+
+def import_athletes(conn: sqlite3.Connection, content: str) -> ImportReport:
+    reader = csv.DictReader(io.StringIO(content), delimiter=";")
+    missing = [col for col in IMPORT_COLUMNS if col not in (reader.fieldnames or [])]
+    if missing:
+        raise ApiError(f"Colonnes manquantes : {', '.join(missing)}", code="invalid_csv")
+
+    created = 0
+    skipped = 0
+    errors: list[ImportLineError] = []
+    for row in reader:
+        try:
+            data = _row_to_create(row)
+        except ValidationError as exc:
+            message = "; ".join(
+                f"{'.'.join(str(p) for p in err['loc'])} : {err['msg']}" for err in exc.errors()
+            )
+            errors.append(ImportLineError(line=reader.line_num, message=message))
+            continue
+        except ValueError as exc:
+            errors.append(ImportLineError(line=reader.line_num, message=str(exc)))
+            continue
+        try:
+            create_athlete(conn, data)
+        except ConflictError:
+            skipped += 1
+        else:
+            created += 1
+    return ImportReport(created=created, skipped=skipped, errors=errors)

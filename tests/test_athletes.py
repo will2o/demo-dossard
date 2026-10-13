@@ -1,4 +1,5 @@
 from datetime import date
+from pathlib import Path
 
 
 def test_create_athlete_returns_201_with_category(client):
@@ -75,3 +76,54 @@ def test_get_athlete_returns_422_on_invalid_id(client):
     response = client.get("/athletes/abc")
 
     assert response.status_code == 422
+
+
+CSV_EXEMPLE = Path(__file__).parent.parent / "scripts" / "legacy" / "licencies_exemple.csv"
+ERREURS_EXEMPLE = [
+    {"line": 15, "message": "date de naissance invalide : « 31/02/2001 » (attendu jj/mm/aaaa)"},
+    {"line": 16, "message": "license_number : String should match pattern '^DOS-\\d{6}$'"},
+]
+
+
+def _import_csv(client, content: bytes):
+    return client.post("/athletes/import", content=content, headers={"Content-Type": "text/csv"})
+
+
+def test_import_athletes_creates_skips_and_reports_errors(client):
+    response = _import_csv(client, CSV_EXEMPLE.read_bytes())
+
+    assert response.status_code == 200
+    body = response.json()
+    assert (body["created"], body["skipped"]) == (17, 1)
+    assert [e["line"] for e in body["errors"]] == [15, 16]
+    assert len(client.get("/athletes").json()) == 17
+
+
+def test_import_athletes_twice_skips_everything(client):
+    content = CSV_EXEMPLE.read_bytes()
+    first = _import_csv(client, content).json()
+
+    body = _import_csv(client, content).json()
+
+    assert (body["created"], body["skipped"]) == (0, 18)
+    assert body["errors"] == first["errors"]
+    assert len(body["errors"]) == 2
+
+
+def test_import_athletes_rejects_missing_columns(client):
+    response = _import_csv(client, b"nom;prenom\nValette;Margaux\n")
+
+    assert response.status_code == 400
+    assert response.json()["error"]["code"] == "invalid_csv"
+
+
+def test_import_athletes_rejects_wrong_header(client):
+    header = "last_name;first_name;birth_date;sex;club;license;certificate"
+    row = "Valette;Margaux;14/03/1998;F;;DOS-900101;"
+    response = _import_csv(client, f"{header}\n{row}\n".encode())
+
+    assert response.status_code == 400
+    error = response.json()["error"]
+    assert error["code"] == "invalid_csv"
+    assert "nom" in error["message"]
+    assert client.get("/athletes").json() == []
