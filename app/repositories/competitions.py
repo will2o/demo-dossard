@@ -8,6 +8,7 @@ from app.schemas import (
     CompetitionCreate,
     CompetitionDetail,
     CompetitionOut,
+    CompetitionStats,
     CompetitionStatus,
     CompetitionUpdate,
     EventCreate,
@@ -73,6 +74,25 @@ def get_competition_detail(conn: sqlite3.Connection, competition_id: int) -> Com
         "SELECT * FROM events WHERE competition_id = ? ORDER BY id", (competition_id,)
     ).fetchall()
     return CompetitionDetail(**competition.model_dump(), events=[_to_event(r) for r in rows])
+
+
+def get_competition_stats(conn: sqlite3.Connection, competition_id: int) -> CompetitionStats:
+    get_competition(conn, competition_id)
+    row = conn.execute(
+        """
+        SELECT
+          (SELECT COUNT(*) FROM events WHERE competition_id = ?) AS events,
+          (SELECT COUNT(*) FROM registrations r
+             JOIN events e ON e.id = r.event_id
+            WHERE e.competition_id = ? AND r.status = 'confirmed') AS confirmed_registrations,
+          (SELECT COUNT(*) FROM results res
+             JOIN registrations r ON r.id = res.registration_id
+             JOIN events e ON e.id = r.event_id
+            WHERE e.competition_id = ?) AS results
+        """,
+        (competition_id, competition_id, competition_id),
+    ).fetchone()
+    return CompetitionStats(**dict(row))
 
 
 def create_competition(conn: sqlite3.Connection, data: CompetitionCreate) -> CompetitionOut:
