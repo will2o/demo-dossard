@@ -4,7 +4,8 @@ import sqlite3
 from datetime import UTC, datetime
 
 from app.errors import ConflictError, NotFoundError
-from app.schemas import ResultOut
+from app.ranking import rank_results
+from app.schemas import RankingEntry, ResultOut, ResultUnit
 
 
 def record_result(conn: sqlite3.Connection, registration_id: int, performance: float) -> ResultOut:
@@ -36,8 +37,11 @@ def record_result(conn: sqlite3.Connection, registration_id: int, performance: f
     )
 
 
-def find_event(conn: sqlite3.Connection, event_id: int) -> sqlite3.Row | None:
-    return conn.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
+def get_ranking(conn: sqlite3.Connection, event_id: int) -> list[RankingEntry]:
+    event = conn.execute("SELECT * FROM events WHERE id = ?", (event_id,)).fetchone()
+    if event is None:
+        raise NotFoundError(f"Épreuve {event_id} introuvable")
+    return rank_results(ranking_rows(conn, event_id), ResultUnit(event["unit"]))
 
 
 def ranking_rows(conn: sqlite3.Connection, event_id: int) -> list[sqlite3.Row]:
