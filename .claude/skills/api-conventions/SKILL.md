@@ -1,5 +1,6 @@
 ---
 name: api-conventions
+disable-model-invocation: true
 description: Conventions des routes HTTP de dossard (format d'erreur, nommage, forme des réponses, documentation). À utiliser pour créer, modifier, relire ou harmoniser un router de app/routers/.
 ---
 
