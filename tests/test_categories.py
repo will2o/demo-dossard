@@ -1,6 +1,6 @@
 from datetime import date
 
-from app.categories import age_category
+from app.categories import age_category, est_junior
 
 
 def test_age_category_boundaries():
@@ -14,3 +14,13 @@ def test_age_category_boundaries():
     assert age_category(date(2010, 1, 1), on=season) == "SENIOR"
     assert age_category(date(1996, 12, 31), on=season) == "SENIOR"
     assert age_category(date(1995, 1, 1), on=season) == "MASTER"
+
+
+def test_est_junior():
+    season = date.today()
+    annee = season.year
+
+    assert not est_junior(date(annee - 15, 12, 31), on=season)
+    assert est_junior(date(annee - 16, 1, 1), on=season)
+    assert est_junior(date(annee - 19, 12, 31), on=season)
+    assert not est_junior(date(annee - 20, 1, 1), on=season)
