@@ -51,3 +51,46 @@ def test_competition_rejects_invalid_transition(client, make_competition):
 
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "invalid_transition"
+
+
+def test_competition_stats_counts_events_confirmed_registrations_and_results(
+    client, make_competition, make_event, make_athlete, make_registration
+):
+    competition = make_competition(status="open")
+    event = make_event(competition["id"])
+    make_event(competition["id"], name="Longueur", unit="distance_m")
+    confirmed = make_registration(event["id"], make_athlete("A")["id"])
+    make_registration(event["id"], make_athlete("B")["id"])
+    make_registration(event["id"], make_athlete("C")["id"], confirm=False)
+    other = make_competition("Autre", status="open")
+    make_registration(make_event(other["id"])["id"], make_athlete("D")["id"])
+    client.patch(f"/competitions/{competition['id']}", json={"status": "closed"})
+    response = client.put(f"/registrations/{confirmed['id']}/result", json={"performance": 11.2})
+    assert response.status_code == 200
+
+    response = client.get(f"/competitions/{competition['id']}/stats")
+
+    assert response.status_code == 200
+    assert response.json() == {"events": 2, "confirmed_registrations": 2, "results": 1}
+
+
+def test_competition_stats_empty_competition_returns_zeros(client, make_competition):
+    competition = make_competition()
+
+    response = client.get(f"/competitions/{competition['id']}/stats")
+
+    assert response.status_code == 200
+    assert response.json() == {"events": 0, "confirmed_registrations": 0, "results": 0}
+
+
+def test_competition_stats_unknown_competition_returns_404(client):
+    response = client.get("/competitions/999/stats")
+
+    assert response.status_code == 404
+    assert response.json()["error"]["code"] == "not_found"
+
+
+def test_competition_stats_rejects_non_integer_id(client):
+    response = client.get("/competitions/abc/stats")
+
+    assert response.status_code == 422
