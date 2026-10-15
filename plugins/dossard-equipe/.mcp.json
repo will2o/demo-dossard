@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "dossard": {
+      "type": "stdio",
+      "command": "${CLAUDE_PROJECT_DIR}/.venv/bin/python",
+      "args": [
+        "${CLAUDE_PROJECT_DIR}/scripts/mcp_dossard.py"
+      ],
+      "env": {}
+    }
+  }
+}
