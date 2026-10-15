@@ -1,0 +1,17 @@
+{
+  "name": "equipe-dossard",
+  "owner": {
+    "name": "will2o"
+  },
+  "metadata": {
+    "description": "Plugins d'équipe pour le projet dossard."
+  },
+  "plugins": [
+    {
+      "name": "dossard-equipe",
+      "source": "./plugins/dossard-equipe",
+      "description": "Socle d'équipe pour dossard : skill des conventions d'API, hooks de garde, de formatage et de journalisation MCP, serveur MCP en lecture seule sur les vues publiques.",
+      "version": "1.0.0"
+    }
+  ]
+}
