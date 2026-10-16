@@ -46,6 +46,21 @@ def test_ranking_orders_distances_descending(client, ranked_event):
     assert [(e["rank"], e["performance"]) for e in ranking] == [(1, 6.85), (2, 6.2), (3, 5.9)]
 
 
+def test_ranking_ex_aequo_partagent_le_rang_et_le_suivant_saute(client, ranked_event):
+    event = ranked_event("time_s", [11.9, 12.1, 12.1, 12.4])
+
+    response = client.get(f"/events/{event['id']}/ranking")
+
+    assert response.status_code == 200
+    ranking = response.json()
+    assert [(e["rank"], e["performance"]) for e in ranking] == [
+        (1, 11.9),
+        (2, 12.1),
+        (2, 12.1),
+        (4, 12.4),
+    ]
+
+
 def test_ranking_unknown_event_returns_404(client):
     response = client.get("/events/9999/ranking")
 

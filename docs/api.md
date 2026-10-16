@@ -41,7 +41,7 @@ Les erreurs de validation (422) gardent le format FastAPI par défaut.
 | POST | `/events/{event_id}/registrations` | Inscrit un athlète (`athlete_id`) à une épreuve et lui attribue un dossard | 201, 404, 409, 422 |
 | PATCH | `/registrations/{registration_id}` | Change le `status` d'une inscription | 200, 404, 409, 422 |
 | PUT | `/registrations/{registration_id}/result` | Enregistre ou remplace la `performance` d'une inscription | 200, 404, 409, 422 |
-| GET | `/events/{event_id}/ranking` | Classement de l'épreuve : liste simple d'entrées `rank`, `bib`, `athlete_id`, `last_name`, `first_name`, `club`, `performance` | 200, 404 |
+| GET | `/events/{event_id}/ranking` | Classement de l'épreuve (ex aequo au même rang, cf. R9) : liste simple d'entrées `rank`, `bib`, `athlete_id`, `last_name`, `first_name`, `club`, `performance` | 200, 404 |
 | GET | `/competitions/{competition_id}/results.csv` | Export CSV des résultats de la compétition (séparateur `,`, champs contenant `,`, `"` ou saut de ligne entourés de guillemets) | 200, 404 |
 
 ## Règles métier
@@ -54,6 +54,7 @@ Les erreurs de validation (422) gardent le format FastAPI par défaut.
 - **R6** Un résultat ne s'enregistre que sur une inscription `confirmed` d'une compétition `closed`.
 - **R7** Le numéro de licence (`DOS-` suivi de 6 chiffres) est unique.
 - **R8** Le classement ne contient que les inscriptions `confirmed` ayant un résultat.
+- **R9** Des performances égales partagent le même rang, et le rang suivant saute d'autant de places (1, 2, 2, 4).
 
 Transitions : une compétition passe de `draft` à `open`, puis `closed`, puis `finished`. Une inscription passe de `pending` à `confirmed` ou `cancelled`, et de `confirmed` à `cancelled`. Toute autre transition renvoie 409 `invalid_transition`.
 

@@ -2,6 +2,7 @@
 
 ## Non publié
 
+- Correction de `GET /events/{event_id}/ranking` : les performances égales partagent désormais le même rang et le rang suivant saute d'autant de places (1, 2, 2, 4) au lieu d'être numérotées à la suite.
 - Ajout de `GET /competitions/{competition_id}/stats` : nombre d'épreuves, d'inscriptions confirmées et de résultats de la compétition (404 `not_found` si inconnue).
 - Correction de `GET /competitions/{competition_id}/results.csv` : les champs contenant une virgule (ex. nom de club) sont désormais entre guillemets, ce qui ne décale plus les colonnes.
 - Harmonisation du router des résultats : `GET /events/{event_id}/ranking` renvoie désormais la liste nue (plus d'enveloppe `{"data", "count"}`) et son 404 passe au format `{"error": …}` (`not_found`) ; ajout des `summary` sur les trois routes.
